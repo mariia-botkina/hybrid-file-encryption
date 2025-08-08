@@ -14,7 +14,7 @@
 
 1.  **Клонируйте репозиторий:**
     ```bash
-    git clone [https://github.com/new](https://github.com/new)
+    git clone https://github.com/mariia-botkina/hybrid-file-encryption.git
     cd my_crypto_project
     ```
 2.  **Установите зависимости:**
