@@ -1,36 +1,97 @@
-# Простая утилита для шифрования файлов
+# hybrid-file-encryption
 
-Этот проект представляет собой Python-скрипт для шифрования и расшифровки файлов с использованием гибридного подхода. Он демонстрирует основные принципы работы асимметричного и симметричного шифрования.
+A Python CLI utility for encrypting and decrypting files using a **hybrid cryptographic scheme** — the same pattern used in TLS handshakes.
 
-## Принципы работы
+ 
 
-Проект использует:
-- **Асимметричное шифрование (RSA)** для безопасной передачи симметричного ключа.
-- **Симметричное шифрование (AES)** для быстрого шифрования самого файла.
+## How It Works
 
-Это имитирует процесс, используемый в реальных протоколах, таких как TLS/SSL, для обеспечения конфиденциальности данных.
+```
+Plaintext file
+      │
+      ▼
+[AES-128, EAX mode] ──── encrypted ciphertext + auth tag
+      │
+ session key (16 bytes, random)
+      │
+      ▼
+[RSA-2048, PKCS1-OAEP] ── encrypted session key
+      │
+      ▼
+  .enc file = [enc_session_key | nonce | tag | ciphertext]
+```
 
-## Как использовать
+1. A random 128-bit AES session key is generated per file.
+2. The session key is encrypted with the recipient's RSA-2048 public key (PKCS1-OAEP padding).
+3. The file is encrypted with AES in **EAX mode** — an authenticated encryption (AEAD) mode that provides both confidentiality and integrity.
+4. The encrypted session key, AES nonce, authentication tag, and ciphertext are written to a single `.enc` file.
 
-1.  **Клонируйте репозиторий:**
-    ```bash
-    git clone https://github.com/mariia-botkina/hybrid-file-encryption.git
-    cd my_crypto_project
-    ```
-2.  **Установите зависимости:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-3.  **Запустите скрипт:**
-    ```bash
-    python encryptor.py
-    ```
-    Скрипт автоматически сгенерирует пару ключей, зашифрует и расшифрует тестовый файл.
+This mirrors the hybrid encryption approach used in the TLS handshake: asymmetric crypto for secure key transport, symmetric crypto for bulk data encryption.
 
-## Файлы проекта
+## Requirements
 
-- `encryptor.py`: Основной скрипт с логикой шифрования и расшифровки.
-- `requirements.txt`: Список необходимых Python-библиотек.
-- `README.md`: Описание проекта (этот файл).
-- `key_pair_private.pem` и `key_pair_public.pem`: Сгенерированные ключи.
-- `test_file.txt` и `test_file.txt.enc`: Тестовые файлы, которые скрипт шифрует и расшифровывает.
+- Python 3.8+
+- [pycryptodome](https://pycryptodome.readthedocs.io/)
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+### 1. Generate a key pair
+
+```bash
+python encryptor.py generate-keys
+# Saves key_pair_private.pem and key_pair_public.pem to the current directory
+```
+
+> ⚠️ Keep `key_pair_private.pem` secret. Never commit it to version control.
+
+### 2. Encrypt a file
+
+```bash
+python encryptor.py encrypt secret.txt
+# Output: secret.txt.enc
+```
+
+### 3. Decrypt a file
+
+```bash
+python encryptor.py decrypt secret.txt.enc
+# Output: secret.txt (restored)
+```
+
+Custom key paths are supported via `--public-key` / `--private-key` flags.  
+See `examples/usage_example.md` for a full walkthrough with sample output.
+
+## Cryptographic Choices
+
+| Component | Algorithm | Rationale |
+|-----------|-----------|-----------|
+| Key transport | RSA-2048, PKCS1-OAEP | Secure asymmetric encryption with OAEP padding |
+| Bulk encryption | AES-128, EAX mode | AEAD: provides both confidentiality and integrity |
+| Key generation | `Crypto.Random.get_random_bytes` | Cryptographically secure random source |
+
+## Security Notes
+
+- Private keys are generated locally and **never stored in this repository**.
+- AES-EAX authentication tag prevents undetected tampering with the ciphertext.
+- RSA key size is 2048 bits — sufficient for current security requirements.
+- Session keys are single-use (generated fresh per file encryption).
+
+## Project Structure
+
+```
+hybrid-file-encryption/
+├── encryptor.py       # CLI entry point + encryption logic
+├── requirements.txt   # Python dependencies
+├── .gitignore         # Excludes *.pem and *.enc from version control
+├── README.md
+└── examples/
+    └── usage_example.md   # Full walkthrough with sample output
+```
+
+## License
+
+MIT
