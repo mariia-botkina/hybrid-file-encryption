@@ -1,3 +1,23 @@
+# RSA keys — never commit private keys
 *.pem
+
+# Encrypted output files
 *.enc
+
+# Generated key directories
+keys/
 generated_keys/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
